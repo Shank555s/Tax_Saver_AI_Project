@@ -45,14 +45,18 @@ except ImportError:
 # Import Investment Optimizer modules
 try:
     from src.investment_optimizer import (
-        UserFinancialProfile, compare_tax_regimes, optimize_elss_investment,
+        UserFinancialProfile, optimize_elss_investment,
         analyze_home_loan_vs_rent, create_monthly_investment_plan,
         LIMIT_80C, LIMIT_80D_SELF, LIMIT_80CCD_1B, LIMIT_24B
     )
     OPTIMIZER_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     OPTIMIZER_AVAILABLE = False
-    print("Investment Optimizer not available")
+    # Only print error once during development
+    import sys
+    if 'OPTIMIZER_ERROR_LOGGED' not in sys.modules:
+        sys.modules['OPTIMIZER_ERROR_LOGGED'] = True
+        print(f"Investment Optimizer import error: {e}")
 
 # ======================================================
 # PAGE CONFIG & STYLING

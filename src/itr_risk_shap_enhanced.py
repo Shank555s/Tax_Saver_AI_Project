@@ -143,34 +143,80 @@ class EnhancedITRRiskAnalyzer:
             explainer = shap.TreeExplainer(self.model)
             shap_values = explainer.shap_values(features)
 
-            # Get SHAP values for high risk class
-            if isinstance(shap_values, list):
-                shap_values_risk = shap_values[1][0]
+            # Get SHAP values for high risk class (class 1)
+            # SHAP values could be:
+            # - list of arrays (one per class): use class 1
+            # - single 2D array: use row 0
+            # - single 3D array: use row 0, class 1
+            if isinstance(shap_values, list) and len(shap_values) > 1:
+                # Binary classification: shap_values[1] is for high-risk class
+                shap_values_risk = shap_values[1]
+                if shap_values_risk.ndim > 1:
+                    shap_values_risk = shap_values_risk[0]  # Get first (and only) row
+            elif isinstance(shap_values, np.ndarray):
+                if shap_values.ndim == 3:
+                    # Shape: (n_samples, n_features, n_classes)
+                    shap_values_risk = shap_values[0, :, 1]  # First sample, all features, class 1
+                elif shap_values.ndim == 2:
+                    # Shape: (n_samples, n_features)
+                    shap_values_risk = shap_values[0]  # First sample
+                else:
+                    shap_values_risk = shap_values
             else:
-                shap_values_risk = shap_values[0]
+                # Fallback: use as-is
+                shap_values_risk = shap_values[1][0] if isinstance(shap_values, list) else shap_values[0]
 
             # Base value
             base_value = explainer.expected_value
             if isinstance(base_value, list):
                 base_value = base_value[1]
+            # Ensure base_value is scalar
+            if isinstance(base_value, np.ndarray):
+                base_value = float(base_value.item()) if base_value.size == 1 else float(base_value[0])
+            elif not isinstance(base_value, (int, float)):
+                base_value = float(base_value)
 
             # Create feature importance dataframe
+            # Ensure all arrays are 1-dimensional and same length
+            feature_values = features[0].flatten()
+
+            # Handle shap_values_risk - could be 1D or 2D
+            if hasattr(shap_values_risk, 'flatten'):
+                shap_vals = shap_values_risk.flatten()
+            elif isinstance(shap_values_risk, np.ndarray):
+                shap_vals = shap_values_risk.ravel()
+            else:
+                shap_vals = np.array(shap_values_risk)
+
+            # Ensure lengths match
+            if len(feature_values) != len(shap_vals):
+                print(f"Warning: Length mismatch - features: {len(feature_values)}, shap: {len(shap_vals)}")
+                # Truncate to minimum length
+                min_len = min(len(feature_values), len(shap_vals), len(self.feature_names))
+                feature_values = feature_values[:min_len]
+                shap_vals = shap_vals[:min_len]
+                feature_names_used = self.feature_names[:min_len]
+            else:
+                feature_names_used = self.feature_names
+
+            # Convert to lists to ensure proper pandas handling
             feature_importance = pd.DataFrame({
-                'feature': self.feature_names,
-                'value': features[0],
-                'shap_value': shap_values_risk
+                'feature': list(feature_names_used),
+                'value': list(feature_values),
+                'shap_value': list(shap_vals)
             })
 
             # Sort by absolute SHAP value
-            feature_importance['abs_shap'] = np.abs(feature_importance['shap_value'])
+            feature_importance['abs_shap'] = feature_importance['shap_value'].abs()
             feature_importance = feature_importance.sort_values('abs_shap', ascending=False)
 
             # Generate detailed explanations
             explanations = []
             for _, row in feature_importance.head(5).iterrows():
                 feature = row['feature']
-                value = row['value']
-                shap_val = row['shap_value']
+                # Ensure scalars by explicit conversion
+                value = float(row['value']) if not isinstance(row['value'], (int, float)) else row['value']
+                shap_val = float(row['shap_value']) if not isinstance(row['shap_value'], (int, float)) else row['shap_value']
 
                 # Determine impact
                 if shap_val > 0:
@@ -218,7 +264,10 @@ class EnhancedITRRiskAnalyzer:
             }
 
         except Exception as e:
+            import traceback
             print(f"Error generating SHAP explanation: {e}")
+            print("Traceback:")
+            traceback.print_exc()
             return {
                 "explanations": [],
                 "base_value": 0.0,
