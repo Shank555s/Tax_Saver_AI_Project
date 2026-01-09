@@ -265,25 +265,13 @@ This tool provides estimates based on FY 2024-25 tax laws. Tax laws change frequ
 
 ---
 
-**Built with ❤️ | Tax Saver AI v4.0 | Production-Ready** © 2025
+**Tax Saver AI v4.0 | Production-Ready** © 2025
 
-**Changelog v4.0 (Major Overhaul):**
+**Tax Saver AI v4.0:**
 - ⭐ **NEW: RAG-based Tax Advisor** with Gemini LLM
 - ⭐ **NEW: SHAP Explainability** for ITR Risk (shows WHY)
 - ⭐ **NEW: LSTM Tax Liability Prediction** (future forecasting)
-- ❌ Removed Tax Calculator (standalone feature)
-- ❌ Removed Smart Expense Tracker (separate module)
 - ✅ Enhanced ITR Risk with explainable AI
-- ✅ Kept all Investment Optimizer features
 - ✅ Modern UI with better visualizations
 - ✅ Comprehensive error handling
 
-**Changelog v3.0:**
-- Added Smart Expense Tracker with AI categorization
-- Updated to New Tax Regime (Mandatory FY 2025-26)
-- Removed old regime comparison
-
-**Changelog v2.0:**
-- Added 4 new calculators (ELSS, Buy vs Rent, Monthly Planner, What-If)
-- Fixed buy vs rent calculations
-- Created 70+ test scenarios
